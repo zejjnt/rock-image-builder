@@ -198,7 +198,7 @@ esac
 rm choice.txt
 ##########################################################################################################################
 whiptail --title "Menu" --menu "Choose Kernel to install" 20 65 6 \
-"1" "Standardkernel of the Debian Suite" \
+"1" "Standard kernel of the Debian Suite" \
 "2" "Download and compile latest availible Kernel" 2> choice.txt
 ret=$?
 
@@ -423,16 +423,16 @@ if [[ "$BUILD" == "yes" ]]; then
 ##########################################################################################################################
     if [ "$KERNEL" == "latest" ]; then
       echo "0" > config/kernel_status
-      xfce4-terminal --title="Building Kernel" --command="config/makekernel.sh" &
+      xfce4-terminal --title="Building kernel" --command="config/makekernel.sh" &
     fi
 ##########################################################################################################################    
     echo "Building Docker image..."
-    docker build --build-arg "SUITE="$SUITE --build-arg "BOARD="$BOARD --build-arg "DESKTOP="$DESKTOP --build-arg "USERNAME="$USERNAME --build-arg "PASSWORD="$PASSWORD --build-arg "KERNEL="$KERNEL -t debian:finest -f config/Dockerfile .
+    docker build --build-arg "SUITE="$SUITE --build-arg "BOARD="$BOARD --build-arg "DESKTOP="$DESKTOP --build-arg "USERNAME="$USERNAME --build-arg "PASSWORD="$PASSWORD --build-arg "KERNEL="$KERNEL -t debian:latest -f config/Dockerfile .
 ##########################################################################################################################    
     docker run --platform=aarch64 -dit --name debiancontainer debian:finest /bin/bash  
 
     if [ "$KERNEL" == "latest" ]; then
-      echo "Waiting for Kernel compilation..."
+      echo "Waiting for kernel compilation..."
       while [[ "$(cat config/kernel_status)" != "1" ]]; do
         sleep 2
       done

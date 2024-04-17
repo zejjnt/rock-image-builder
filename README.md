@@ -1,5 +1,5 @@
 # rock-image-builder - Daily updated
-Image builder for radxa Borads
+Image builder for radxa boards
 
 Now the kernel headers are in the right place
 
@@ -33,8 +33,8 @@ Wait until the QEMU emulation to install radxa drivers is finished.
 You will find your image in the output folder.
 
 # Adding custom packages to install
-    -If you want to add packages to install, append it to config/apt-packages.txt
-     instead of modifying the Dockerfile
+    - If you want to install additional packages, append them to config/apt-packages.txt
+     instead of modifying Dockerfile
 
 # Required Host system:
   - Debian/amd64 (bullseye, bookworm, MX 21 and MX23 are tested)
@@ -60,14 +60,14 @@ You will find your image in the output folder.
   - rock5b
 
 ## Kernel
-  - Standard Kernel of the Debian Suite
-  - Lates availible Linux Kernel (Downloaded and Compiled)
+  - Standard kernel of the Debian suite
+  - Lates available Linux kernel (Downloaded and compiled)
 
 ## Kernelheaders
-  - Installed automaticly
+  - Installed automatically
 
 ## Currently supported desktops:
-  - none(Command line interface/tested)
+  - none (Command line interface/tested)
   - xfce     (tested on rock4se)
   - gnome    (tested on rock4se)
   - mate
@@ -86,8 +86,8 @@ Type './build.sh -h'
 ---------------------------------------------------
     -h, --help                      Show this help message and exit
     -s, --suite SUITE               Choose the Debian suite (e.g., testing, experimental, trixie)
-    -B, --board                     Choose the Radxa Board
-    --boardlist                     Show availible Boards
+    -B, --board                     Choose the radxa board
+    --boardlist                     Show availible boards
     -k, --kernel latest/standard    Choose which kernel to install
     -d, --desktop DESKTOP           Choose the desktop environment (e.g., xfce4, kde, none)
     -i, --interactive yes/no        Start an interactive shell in the docker container (yes/no)
