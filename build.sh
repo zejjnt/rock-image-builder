@@ -1,10 +1,21 @@
 #!/bin/bash
 
+# Check if running with sudo
+if [ "$UID" -ne 0 ]; then
+    echo "This program needs sudo rights."
+    echo "Run it with 'sudo $0'"
+    exit 1
+fi
+
+MENU=$(which whiptail dialog | head -n1)
+if [[ -z "$MENU" ]]; then
+        echo "This script needs either whiptail or dialog in order to function."
+fi
 
 INTERACTIVE=no
 TIMESTAMP=$(date +%Y-%m-%d_%H-%M)
 BUILD=no
-##########################################################################################################################
+
 usage() {
     echo "-------------------------------------------------------------------------------------------------"
     echo "Options:"
@@ -19,9 +30,10 @@ usage() {
     echo "  -u, --username USERNAME         Set username for the sudo user"
     echo "  -p, --password PASSWORD         Set password for the sudo user"
     echo "  -i, --interactive yes/no        Start an interactive shell within the container"
-    echo "  -b                              Non-interactively build image using the parameters specified above"
+    echo "  -q, --quiet         	        Non-interactively build image using the parameters specified above"
+    echo "  -c, --compress-level            Compression level for the final archive (1-9, default: 3)"
     echo "-------------------------------------------------------------------------------------------------"
-    echo "For example: $0 -s sid -d none -k latest -B rock3a -u USERNAME123 -p PASSWORD123 -b"
+    echo "For example: $0 -s sid -d none -k latest -B rock3a -u USERNAME123 -p PASSWORD123 -q"
     exit 1
 }
 
@@ -38,12 +50,6 @@ boardlist() {
     echo "rock5b"
     exit 1
 }
-# Check if running with sudo
-if [ "$UID" -ne 0 ]; then
-    echo "This program needs sudo rights."
-    echo "Run it with 'sudo $0'"
-    exit 1
-fi
 
 # Parse arguments
 while [[ "$#" -gt 0 ]]; do
@@ -57,7 +63,8 @@ while [[ "$#" -gt 0 ]]; do
         -u|--username) USERNAME="$2"; shift ;;
         -p|--password) PASSWORD="$2"; shift ;;
         -i|--interactive) INTERACTIVE="$2"; shift ;;
-        -b) BUILD="yes" ;;
+        -c|--compress-level) COMPRESSLEVEL="$2"; shift ;;
+        -q|--quiet) BUILD="yes" ;;
         *) echo "Unknown parameter passed: $1"; usage ;;
     esac
     shift
@@ -79,18 +86,24 @@ elif [ "$BOARD" == "rock4cplus" ]; then
   BOOTLOADER="boot-rock_pi_4c_plus.bin.gz"
 fi
 
+if [[ $COMPRESSLEVEL = [123456789] ]]; then
+	echo "Invalid compression level provided, defaulting to 3"
+	COMPRESSLEVEL=3
+fi
+
 echo "-------------------"
 echo "Cleaning build area"
 echo "-------------------"
 sleep 2
 rm -rf .rootfs/
 echo ""
+
 if [ -z "$SUITE" ] || [ -z "$DESKTOP" ] || [ -z "$USERNAME" ] || [ -z "$PASSWORD" ] || [ -z "$KERNEL" ] || [ -z "$BOARD" ]; then
 ##########################################################################################################################
 info_text="                HELP ME TO IMPROVE THIS PROGRAM\n\nSend an E-mail with suggestions to: byte4rr4y@gmail.com"
-whiptail --title "Information" --msgbox "$info_text" 20 65
+$MENU --title "Information" --msgbox "${info_text}" 20 65
 ##########################################################################################################################
-whiptail --title "Menu" --menu "Choose a Debian suite" 20 65 6 \
+$MENU --title "Menu" --menu "Choose a Debian suite" 20 65 6 \
 "1" "testing" \
 "2" "experimental" \
 "3" "trixie" \
@@ -139,8 +152,8 @@ case $ret in
 esac
 
 rm choice.txt
-##########################################################################################################################
-whiptail --title "Menu" --menu "Select board" 20 65 6 \
+
+$MENU --title "Menu" --menu "Select board" 20 65 6 \
 "1" "rock3a" \
 "2" "rock4b (might also work for rock4a)" \
 "3" "rock4bplus" \
@@ -196,8 +209,8 @@ esac
     ;;
 esac
 rm choice.txt
-##########################################################################################################################
-whiptail --title "Menu" --menu "Choose which kernel to install" 20 65 6 \
+
+$MENU --title "Menu" --menu "Choose which kernel to install" 20 65 6 \
 "1" "Default Debian suite kernel" \
 "2" "Download and compile the latest availible kernel" 2> choice.txt
 ret=$?
@@ -230,8 +243,8 @@ esac
     ;;
 esac
 rm choice.txt
-##########################################################################################################################
-whiptail --title "Menu" --menu "Select desktop environment" 20 65 10 \
+
+$MENU --title "Menu" --menu "Select desktop environment" 20 65 10 \
 "1" "none" \
 "2" "xfce" \
 "3" "gnome" \
@@ -296,17 +309,14 @@ esac
     ;;
 esac
 rm choice.txt
-##########################################################################################################################    
 
-USERNAME=$(whiptail --title "Create sudo user" --inputbox "Enter username:" 20 65 3>&1 1>&2 2>&3)
-
-# Passwort abfragen
-PASSWORD=$(whiptail --title "Create sudo user" --passwordbox "Enter password:" 20 65 3>&1 1>&2 2>&3)
+USERNAME=$(MENU --title "Create sudo user" --inputbox "Enter username:" 20 65 3>&1 1>&2 2>&3)
+PASSWORD=$(MENU --title "Create sudo user" --passwordbox "Enter password:" 20 65 3>&1 1>&2 2>&3)
 
 echo "USERNAME=${USERNAME}" >> .config
 echo "PASSWORD=${PASSWORD}" >> .config
-##########################################################################################################################
-whiptail --title "Menu" --menu "Choose an option" 20 65 4 \
+
+$MENU --title "Menu" --menu "Choose an option" 20 65 4 \
 "1" "Start build using the given configuration" \
 "2" "Start build using the given configuration, then enter into an interactive shell within the built container" 2> choice.txt
 ret=$?
@@ -339,12 +349,12 @@ esac
     ;;
 esac
 rm choice.txt
-##########################################################################################################################
+
 while IFS='=' read -r key value; do
     case "$key" in
-    	  SUITE)
-    		    SUITE="$value"
-    		    ;;
+    	SUITE)
+    	    SUITE="$value"
+    	    ;;
         BOARD)
             BOARD="$value"
             ;;
@@ -353,9 +363,6 @@ while IFS='=' read -r key value; do
             ;;
         DESKTOP)
             DESKTOP="$value"
-            ;;
-        HEADERS)
-            HEADERS="$value"
             ;;
         USERNAME)
             USERNAME="$value"
@@ -366,6 +373,9 @@ while IFS='=' read -r key value; do
         INTERACTIVE)
             INTERACTIVE="$value"
             ;;
+		COMPRESSLEVEL)
+			COMPRESSLEVEL="$value"
+			;;
         *)
             ;;
     esac
@@ -373,21 +383,19 @@ done < .config
 fi
 
 if [ "$BUILD" == "no" ]; then
-##########################################################################################################################
     display_variables() {
-        whiptail --title "Confirm configuration and build?" --yesno \
-        "SUITE=$SUITE\nBoard=$BOARD\nKERNEL=$KERNEL\nDESKTOP=$DESKTOP\nUSERNAME=$USERNAME\nPASSWORD=$PASSWORD\nINTERACTIVE=$INTERACTIVE" \
+        $MENU --title "Confirm configuration and build?" --yesno \
+        "SUITE=${SUITE}\nBOARD=${BOARD}\nKERNEL=${KERNEL}\nDESKTOP=${DESKTOP}\nUSERNAME=${USERNAME}\nPASSWORD=${PASSWORD}\nINTERACTIVE=${INTERACTIVE}\nCOMPRESSLEVEL=${COMPRESSLEVEL}" \
         20 65
+		ret=$?
     }
 
     display_variables
-    if [ $? -eq 0 ]; then
+    if [ "$ret" -eq 0 ]; then
         BUILD=yes
-    else
-        BUILD=no
     fi
 fi
-##########################################################################################################################
+
 if [[ "$BUILD" == "yes" ]]; then
     while IFS='=' read -r key value; do
         case "$key" in
@@ -403,9 +411,6 @@ if [[ "$BUILD" == "yes" ]]; then
             BOARD)
                 BOARD="$value"
                 ;;
-            HEADERS)
-                HEADERS="$value"
-                ;;
             USERNAME)
                 USERNAME="$value"
                 ;;
@@ -415,21 +420,22 @@ if [[ "$BUILD" == "yes" ]]; then
             INTERACTIVE)
                 INTERACTIVE="$value"
                 ;;
+			COMPRESSLEVEL)
+				COMPRESSLEVEL="$value"
+				;;
             *)
                 ;;
         esac
     done < .config
 
-##########################################################################################################################
     if [ "$KERNEL" == "latest" ]; then
       echo "0" > config/kernel_status
       xfce4-terminal --title="Building kernel..." --command="config/makekernel.sh" &
     fi
-##########################################################################################################################    
+
     echo "Building Docker image..."
-    docker build --build-arg "SUITE="$SUITE --build-arg "BOARD="$BOARD --build-arg "DESKTOP="$DESKTOP --build-arg "USERNAME="$USERNAME --build-arg "PASSWORD="$PASSWORD --build-arg "KERNEL="$KERNEL -t debian:latest -f config/Dockerfile .
-##########################################################################################################################    
-    docker run --platform=aarch64 -dit --name debiancontainer debian:latest /bin/bash
+    docker build --build-arg SUITE="${SUITE}" --build-arg BOARD="${BOARD}" --build-arg DESKTOP="${DESKTOP}" --build-arg USERNAME="${USERNAME}" --build-arg PASSWORD="${PASSWORD}" --build-arg KERNEL="$KERNEL" --build-arg COMPRESSLEVEL="${COMPRESSLEVEL}" -t debian:latest -f config/Dockerfile .
+	docker run --platform=aarch64 -dit --name debiancontainer debian:latest /bin/bash
 
     if [ "$KERNEL" == "latest" ]; then
       echo "Waiting for kernel compilation..."
@@ -451,12 +457,11 @@ if [[ "$BUILD" == "yes" ]]; then
     docker cp config/resizeroot debiancontainer:/usr/local/bin
     docker exec debiancontainer bash -c 'chmod +x /usr/local/bin/resizeroot'
     
-##########################################################################################################################    
     if [[ "$INTERACTIVE" == "yes" ]]; then
         docker attach debiancontainer
         docker start debiancontainer       
     fi
-##########################################################################################################################    
+
     docker cp debiancontainer:/rootfs_size.txt config/
     ROOTFS=.rootfs.img
     if [[ "$KERNEL" == "standard" ]]; then
@@ -464,11 +469,12 @@ if [[ "$BUILD" == "yes" ]]; then
     else
       reserved=1300
     fi
+	
     rootfs_size=$(cat config/rootfs_size.txt)
     echo "Creating empty rootfs image..."
-    dd if=/dev/zero of=$ROOTFS bs=1M count=$((${rootfs_size} + $reserved)) status=progress
+    dd if=/dev/zero of=${ROOTFS} bs=1M count=$((rootfs_size + reserved)) status=progress
     rm config/rootfs_size.txt
-    mkfs.ext4 -L rootfs $ROOTFS -F
+    mkfs.ext4 -L rootfs ${ROOTFS} -F
     mkfs.ext4 ${ROOTFS} -L rootfs -F
     mkdir -p .loop/root
     mount ${ROOTFS} .loop/root
@@ -478,32 +484,36 @@ if [[ "$BUILD" == "yes" ]]; then
     docker kill debiancontainer
     docker rm debiancontainer
     docker rmi debiancontainer:latest
-    mkdir -p output/Debian-${SUITE}-${DESKTOP}-${BOARD}-build-${TIMESTAMP}/.qemu
+    mkdir -p output/Debian-="${SUITE}"-="${DESKTOP}"-"${BOARD}"-build-="${TIMESTAMP}"/.qemu
     rm .loop/root/.dockerenv
-    cp .loop/root/boot/vmlinuz* output/Debian-${SUITE}-${DESKTOP}-${BOARD}-build-${TIMESTAMP}/.qemu/vmlinuz
-    cp .loop/root/boot/initrd* output/Debian-${SUITE}-${DESKTOP}-${BOARD}-build-${TIMESTAMP}/.qemu/initrd.img
+    cp .loop/root/boot/vmlinuz* output/Debian-"${SUITE}"-="${DESKTOP}"-"${BOARD}"-build-="${TIMESTAMP}"/.qemu/vmlinuz
+    cp .loop/root/boot/initrd* output/Debian-"${SUITE}"-"${DESKTOP}"-"${BOARD}"-build-"${TIMESTAMP}"/.qemu/initrd.img
     
     umount .loop/root
 
     e2fsck -fvC 0 ${ROOTFS}
-    gzip ${ROOTFS}
+    pigz -"${COMPRESSLEVEL}" ${ROOTFS}
+	
     RELEASE=$(cat config/release)
     if [ "$DESKTOP" == "none" ]; then
       DESKTOP="CLI"
     fi
     if [ "$KERNEL" == "standard" ]; then
-      RELEASE=standard
+      RELEASE="standard"
     fi
-    zcat config/${BOOTLOADER} ${ROOTFS}.gz > "output/Debian-${SUITE}-${DESKTOP}-${BOARD}-build-${TIMESTAMP}/Debian-${SUITE}-${DESKTOP}-Kernel-${RELEASE}.img"
-    rm -rf .loop/root .loop/ .rootfs.img .rootfs.tar "${ROOTFS}.gz"
+	
+    zcat config/"${BOOTLOADER}" "${ROOTFS}".gz > output/Debian-"${SUITE}"-"${DESKTOP}"-"${BOARD}"-build-"${TIMESTAMP}"/Debian-"${SUITE}"-"${DESKTOP}"-Kernel-"${RELEASE}".img
+    rm -rf .loop/root .loop/ .rootfs.img .rootfs.tar "${ROOTFS}".gz
     SDCARD="output/Debian-${SUITE}-${DESKTOP}-${BOARD}-build-${TIMESTAMP}/Debian-${SUITE}-${DESKTOP}-Kernel-${RELEASE}.img"
     available_cpus=$(nproc)
     max_cpus=8
+
     if ((available_cpus > max_cpus)); then
       CPUS=$max_cpus
     else
       CPUS=$available_cpus
     fi
+	
     if [ "$BOARD" == "rock4b" ]; then
       CPU="cortex-a72"
     elif [ "$BOARD" == "rock4bplus" ]; then
@@ -519,13 +529,14 @@ if [[ "$BUILD" == "yes" ]]; then
     elif [ "$BOARD" == "rock5b" ]; then
       CPU="cortex-a76"
     fi
+	
     sudo qemu-system-aarch64  \
       -M virt \
-      -cpu $CPU -smp $CPUS \
+      -cpu "$CPU" -smp "$CPUS" \
       -m 4096 \
-      -kernel "$(dirname "$SDCARD")/.qemu/"vmlinuz \
-      -initrd "$(dirname "$SDCARD")/.qemu/"initrd.img \
-      -drive if=none,file=${SDCARD},format=raw,id=disk \
+      -kernel "$(dirname "${SDCARD}")/.qemu/"vmlinuz \
+      -initrd "$(dirname "${SDCARD}")/.qemu/"initrd.img \
+      -drive if=none,file="${SDCARD}",format=raw,id=disk \
       -bios /usr/lib/u-boot/qemu_arm64/u-boot.bin \
       -append "root=LABEL=rootfs rw" \
       -device virtio-blk-device,drive=disk \
@@ -533,9 +544,9 @@ if [[ "$BUILD" == "yes" ]]; then
       -netdev user,id=net0 \
       -device virtio-net-pci,netdev=net0 \
       -device virtio-mouse-pci -nographic -no-reboot
-##########################################################################################################################
+
     filesize=$(stat -c %s "output/Debian-${SUITE}-${DESKTOP}-${BOARD}-build-${TIMESTAMP}/Debian-${SUITE}-${DESKTOP}-Kernel-${RELEASE}.img")
-    if [ $filesize -gt 1073741824 ]; then
+    if [[ $filesize -gt 1073741824 ]]; then
         echo "------------------------"
         echo "BUILT IMAGE SUCCESSFULLY"
         echo "------------------------"
@@ -544,6 +555,7 @@ if [[ "$BUILD" == "yes" ]]; then
         echo "FAILED TO BUILD IMAGE!"
         echo "----------------------"
     fi
-    chown -R ${SUDO_USER}:${SUDO_USER} ./
+	
+    chown -R "${SUDO_USER}":"${SUDO_USER}" ./
     rm config/release
 fi
