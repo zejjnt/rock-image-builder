@@ -9,7 +9,7 @@ cd linux
 
 yes "" | make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- defconfig
 
-BUILD="$(sed -n 's|^.*\s\+\(\S\+\.\S\+\.\S\+\)\s\+Kernel Configuration$|\1|p' .config)"
+BUILD="$(sed -n 's|^.*\s\+\(\S\+\.\S\+\.\S\+\)\s\+Kernel configuration$|\1|p' .config)"
 echo "${BUILD}" > ${CWD}/config/release
 KERNELDIR="KERNEL-${BUILD}"
 mkdir -p "${CWD}/linux/${KERNELDIR}"
