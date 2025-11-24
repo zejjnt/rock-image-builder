@@ -22,7 +22,7 @@ usage() {
     echo "  -h, --help                      Display this help message and exit"
     echo "  -B, --board                     Which Rock board to compile the image for"
     echo "  --boardlist                     Display list of supported boards"
-    echo "  -s, --suite SUITE               Choose Debian suite (e.g., testing, experimental, trixie, bookworm...)"
+    echo "  -s, --suite SUITE               Choose Debian suite (e.g., testing, experimental, trixie...)"
     echo "  -k, --kernel latest/standard    Choose kernel to install"
     echo "  -d, --desktop DESKTOP           Choose the desktop environment."
     echo "                                  (none/xfce4/gnome/cinnamon/lxqt/lxde/unity/budgie/kde)"
@@ -30,7 +30,7 @@ usage() {
     echo "  -u, --username USERNAME         Set username for the sudo user"
     echo "  -p, --password PASSWORD         Set password for the sudo user"
     echo "  -i, --interactive yes/no        Start an interactive shell within the container"
-    echo "  -q, --quiet					Non-interactively build image using the parameters specified above"
+    echo "  -q, --quiet						Non-interactively build image using the parameters specified above"
     echo "  -c, --compress-level            Compression level for the final archive (1-9, default: 3)"
     echo "-------------------------------------------------------------------------------------------------"
     echo "For example: $0 -s sid -d none -k latest -B rock3a -u USERNAME123 -p PASSWORD123 -q"
@@ -86,7 +86,9 @@ elif [ "$BOARD" == "rock4cplus" ]; then
   BOOTLOADER="boot-rock_pi_4c_plus.bin.gz"
 fi
 
-if [[ $COMPRESSLEVEL = [123456789] ]]; then
+if [[ -z "$COMPRESSLEVEL" ]]; then
+	COMPRESSLEVEL=3
+elif [[ "$COMPRESSLEVEL" -gt 9 || "$COMPRESSLEVEL" -lt 1 ]]; then
 	echo "Invalid compression level provided, defaulting to 3"
 	COMPRESSLEVEL=3
 fi
@@ -310,8 +312,8 @@ esac
 esac
 rm choice.txt
 
-USERNAME=$(MENU --title "Create sudo user" --inputbox "Enter username:" 20 65 3>&1 1>&2 2>&3)
-PASSWORD=$(MENU --title "Create sudo user" --passwordbox "Enter password:" 20 65 3>&1 1>&2 2>&3)
+USERNAME=$(${MENU} --title "Create sudo user" --inputbox "Enter username:" 20 65 3>&1 1>&2 2>&3)
+PASSWORD=$(${MENU} --title "Create sudo user" --passwordbox "Enter password:" 20 65 3>&1 1>&2 2>&3)
 
 echo "USERNAME=${USERNAME}" >> .config
 echo "PASSWORD=${PASSWORD}" >> .config
@@ -430,7 +432,9 @@ if [[ "$BUILD" == "yes" ]]; then
 
     if [ "$KERNEL" == "latest" ]; then
       echo "0" > config/kernel_status
-      xfce4-terminal --title="Building kernel..." --command="config/makekernel.sh" &
+      #xfce4-terminal --title="Building kernel..." --command="config/makekernel.sh" &
+	  chmod +x ./config/makekernel.sh
+	  ./config/makekernel.sh &
     fi
 
     echo "Building Docker image..."
