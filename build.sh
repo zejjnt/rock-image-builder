@@ -8,25 +8,25 @@ BUILD=no
 usage() {
     echo "-------------------------------------------------------------------------------------------------"
     echo "Options:"
-    echo "  -h, --help                      Show this help message and exit"
-    echo "  -B, --board                     Define a Rock-board"
-    echo "  --boardlist                     Show list of supported boards"
-    echo "  -s, --suite SUITE               Choose the Debian suite (e.g., testing, experimental, trixie)"
-    echo "  -k, --kernel latest/standard    Choose which kernel to install"
+    echo "  -h, --help                      Display this help message and exit"
+    echo "  -B, --board                     Which Rock board to compile the image for"
+    echo "  --boardlist                     Display list of supported boards"
+    echo "  -s, --suite SUITE               Choose Debian suite (e.g., testing, experimental, trixie, bookworm...)"
+    echo "  -k, --kernel latest/standard    Choose kernel to install"
     echo "  -d, --desktop DESKTOP           Choose the desktop environment."
     echo "                                  (none/xfce4/gnome/cinnamon/lxqt/lxde/unity/budgie/kde)"
     echo "                                  This only has an effect in kombination with -d or --desktop"
-    echo "  -u, --username USERNAME         Enter the username for the sudo user"
-    echo "  -p, --password PASSWORD         Enter the password for the sudo user"
-    echo "  -i, --interactive yes/no        Start an interactive shell inside the container"
-    echo "  -b                              Build the image with the specified configuration without asking"
+    echo "  -u, --username USERNAME         Set username for the sudo user"
+    echo "  -p, --password PASSWORD         Set password for the sudo user"
+    echo "  -i, --interactive yes/no        Start an interactive shell within the container"
+    echo "  -b                              Non-interactively build image using the parameters specified above"
     echo "-------------------------------------------------------------------------------------------------"
     echo "For example: $0 -s sid -d none -k latest -B rock3a -u USERNAME123 -p PASSWORD123 -b"
     exit 1
 }
 
 boardlist() {
-    echo "Supported boards are:"
+    echo "Supported boards:"
     echo "====================="
     echo "rock3a"
     echo "rock4b"
@@ -79,9 +79,9 @@ elif [ "$BOARD" == "rock4cplus" ]; then
   BOOTLOADER="boot-rock_pi_4c_plus.bin.gz"
 fi
 
-echo "----------------------"
-echo "cleaning build area..."
-echo "----------------------"
+echo "-------------------"
+echo "Cleaning build area"
+echo "-------------------"
 sleep 2
 rm -rf .rootfs/
 echo ""
@@ -90,7 +90,7 @@ if [ -z "$SUITE" ] || [ -z "$DESKTOP" ] || [ -z "$USERNAME" ] || [ -z "$PASSWORD
 info_text="                HELP ME TO IMPROVE THIS PROGRAM\n\nSend an E-mail with suggestions to: byte4rr4y@gmail.com"
 whiptail --title "Information" --msgbox "$info_text" 20 65
 ##########################################################################################################################
-whiptail --title "Menu" --menu "Choose a Debian Suite" 20 65 6 \
+whiptail --title "Menu" --menu "Choose a Debian suite" 20 65 6 \
 "1" "testing" \
 "2" "experimental" \
 "3" "trixie" \
@@ -140,9 +140,9 @@ esac
 
 rm choice.txt
 ##########################################################################################################################
-whiptail --title "Menu" --menu "Choose a board" 20 65 6 \
+whiptail --title "Menu" --menu "Select board" 20 65 6 \
 "1" "rock3a" \
-"2" "rock4b(maybe also works for rock4a)" \
+"2" "rock4b (might also work for rock4a)" \
 "3" "rock4bplus" \
 "4" "rock4c" \
 "5" "rock4se" \
@@ -197,9 +197,9 @@ esac
 esac
 rm choice.txt
 ##########################################################################################################################
-whiptail --title "Menu" --menu "Choose Kernel to install" 20 65 6 \
-"1" "Standard kernel of the Debian Suite" \
-"2" "Download and compile latest availible Kernel" 2> choice.txt
+whiptail --title "Menu" --menu "Choose which kernel to install" 20 65 6 \
+"1" "Default Debian suite kernel" \
+"2" "Download and compile the latest availible kernel" 2> choice.txt
 ret=$?
 
 case $ret in
@@ -231,7 +231,7 @@ esac
 esac
 rm choice.txt
 ##########################################################################################################################
-whiptail --title "Menu" --menu "Choose a Desktop option" 20 65 10 \
+whiptail --title "Menu" --menu "Select desktop environment" 20 65 10 \
 "1" "none" \
 "2" "xfce" \
 "3" "gnome" \
@@ -307,8 +307,8 @@ echo "USERNAME=${USERNAME}" >> .config
 echo "PASSWORD=${PASSWORD}" >> .config
 ##########################################################################################################################
 whiptail --title "Menu" --menu "Choose an option" 20 65 4 \
-"1" "Just build with the given configuration" \
-"2" "Start interactive shell in the container" 2> choice.txt
+"1" "Start build using the given configuration" \
+"2" "Start build using the given configuration, then enter into an interactive shell within the built container" 2> choice.txt
 ret=$?
 
 case $ret in
@@ -375,7 +375,7 @@ fi
 if [ "$BUILD" == "no" ]; then
 ##########################################################################################################################
     display_variables() {
-        whiptail --title "Is this configuration correct?" --yesno \
+        whiptail --title "Confirm configuration and build?" --yesno \
         "SUITE=$SUITE\nBoard=$BOARD\nKERNEL=$KERNEL\nDESKTOP=$DESKTOP\nUSERNAME=$USERNAME\nPASSWORD=$PASSWORD\nINTERACTIVE=$INTERACTIVE" \
         20 65
     }
@@ -423,7 +423,7 @@ if [[ "$BUILD" == "yes" ]]; then
 ##########################################################################################################################
     if [ "$KERNEL" == "latest" ]; then
       echo "0" > config/kernel_status
-      xfce4-terminal --title="Building kernel" --command="config/makekernel.sh" &
+      xfce4-terminal --title="Building kernel..." --command="config/makekernel.sh" &
     fi
 ##########################################################################################################################    
     echo "Building Docker image..."
@@ -465,7 +465,7 @@ if [[ "$BUILD" == "yes" ]]; then
       reserved=1300
     fi
     rootfs_size=$(cat config/rootfs_size.txt)
-    echo "Creating an empty rootfs image..."
+    echo "Creating empty rootfs image..."
     dd if=/dev/zero of=$ROOTFS bs=1M count=$((${rootfs_size} + $reserved)) status=progress
     rm config/rootfs_size.txt
     mkfs.ext4 -L rootfs $ROOTFS -F
@@ -536,13 +536,13 @@ if [[ "$BUILD" == "yes" ]]; then
 ##########################################################################################################################
     filesize=$(stat -c %s "output/Debian-${SUITE}-${DESKTOP}-${BOARD}-build-${TIMESTAMP}/Debian-${SUITE}-${DESKTOP}-Kernel-${RELEASE}.img")
     if [ $filesize -gt 1073741824 ]; then
-        echo "--------------------------------------"
-        echo "CONGRATULATION, BUILD WAS SUCCESSFULL!"
-        echo "--------------------------------------"
+        echo "------------------------"
+        echo "BUILT IMAGE SUCCESSFULLY"
+        echo "------------------------"
     else
-        echo "--------------------------------"
-        echo "SORRY, BUILD WAS NOT SUCCESSFULL"
-        echo "--------------------------------"
+        echo "----------------------"
+        echo "FAILED TO BUILD IMAGE!"
+        echo "----------------------"
     fi
     chown -R ${SUDO_USER}:${SUDO_USER} ./
     rm config/release
