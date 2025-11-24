@@ -30,7 +30,7 @@ usage() {
     echo "  -u, --username USERNAME         Set username for the sudo user"
     echo "  -p, --password PASSWORD         Set password for the sudo user"
     echo "  -i, --interactive yes/no        Start an interactive shell within the container"
-    echo "  -q, --quiet         	        Non-interactively build image using the parameters specified above"
+    echo "  -q, --quiet						Non-interactively build image using the parameters specified above"
     echo "  -c, --compress-level            Compression level for the final archive (1-9, default: 3)"
     echo "-------------------------------------------------------------------------------------------------"
     echo "For example: $0 -s sid -d none -k latest -B rock3a -u USERNAME123 -p PASSWORD123 -q"
