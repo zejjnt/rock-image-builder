@@ -13,7 +13,7 @@ apt install -y git bc bison flex libssl-dev make
 git clone --depth=1 https://github.com/torvalds/linux
 cd linux
 make ARCH=arm64 defconfig
-BUILD="$(sed -n 's|^.*\s\+\(\S\+\.\S\+\.\S\+\)\s\+Kernel Configuration$|\1|p' .config)"
+BUILD="$(sed -n 's|^.*\s\+\(\S\+\.\S\+\.\S\+\)\s\+Kernel configuration$|\1|p' .config)"
 make -j ${CPUS} KERNELRELEASE="${BUILD}" ARCH=arm64 CONFIG_WIRELESS=y CONFIG_BRCMUTIL=m CONFIG_BRCMFMAC=m CONFIG_ARCH_ROCKCHIP=y Image.gz modules dtbs
 make modules_install
 mkdir -p "/lib/linux-image-${BUILD}/rockchip/"
